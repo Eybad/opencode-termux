@@ -1,0 +1,29 @@
+# SHA256 de los assets opencode-linux-arm64.tar.gz publicados en
+# https://github.com/anomalyco/opencode/releases
+#
+# Formato:  <tag>  <sha256 del tarball>
+#
+# Este archivo es la UNICA fuente de hashes: install.sh y verify.sh lo leen.
+# No dupliques los hashes dentro de los scripts.
+#
+# Como obtener y validar el hash de una version nueva:
+#
+#   TAG=v1.18.9
+#   curl -fLO "https://github.com/anomalyco/opencode/releases/download/$TAG/opencode-linux-arm64.tar.gz"
+#   sha256sum opencode-linux-arm64.tar.gz
+#
+# Y confirmá que ese digest esté firmado por GitHub (release attestation):
+#
+#   gh release verify-asset "$TAG" opencode-linux-arm64.tar.gz --repo anomalyco/opencode
+#
+# Alternativa con el comando genérico (--predicate-type es obligatorio, porque
+# opencode publica attestations de tipo release y no SLSA provenance):
+#
+#   gh attestation verify opencode-linux-arm64.tar.gz \
+#     --repo anomalyco/opencode \
+#     --predicate-type https://in-toto.io/attestation/release/v0.2
+#
+# El hash de v1.18.9 fue verificado contra la release attestation de GitHub,
+# que lista opencode-linux-arm64.tar.gz con este mismo digest.
+
+v1.18.9  b16bd7593ea960a25d9c6849b3023bcd9b9244a6f51675341fd2052043b0670f
