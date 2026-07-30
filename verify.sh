@@ -41,16 +41,17 @@ fail() { printf '%sFAIL%s: %s\n' "$RED" "$NC" "$1"; FAILS=$((FAILS + 1)); }
 warn() { printf '%sWARN%s: %s\n' "$ORANGE" "$NC" "$1"; WARNS=$((WARNS + 1)); }
 note() { printf '%s      %s%s\n' "$MUTED" "$1" "$NC"; }
 
+# El sub(/\r$/,"") tolera archivos guardados con finales de linea CRLF.
 manifest_get() {
   local key="$1"
   [[ -f "$MANIFEST" ]] || return 0
-  awk -F= -v k="$key" '$1==k { sub(/^[^=]*=/,""); print; exit }' "$MANIFEST"
+  awk -F= -v k="$key" '{ sub(/\r$/, "") } $1==k { sub(/^[^=]*=/,""); print; exit }' "$MANIFEST"
 }
 
 lookup_sha256() {
   local tag="$1"
   [[ -f "$HASH_FILE" ]] || return 0
-  awk -v t="$tag" '$1==t { print $2; exit }' "$HASH_FILE"
+  awk -v t="$tag" '{ sub(/\r$/, "") } $1==t { print $2; exit }' "$HASH_FILE"
 }
 
 normalize_version() {
