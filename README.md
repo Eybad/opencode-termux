@@ -127,7 +127,13 @@ El hash de v1.18.9 en `sha256.txt` fue confirmado contra esa attestation, que li
 
 `--set-interpreter` y `--set-rpath` modifican `PT_INTERP` y `DT_RUNPATH` del ELF para apuntar al loader y librerías glibc de Termux. No se parchean instrucciones ni se altera la lógica del programa. Inspeccionable con `patchelf --print-interpreter` y `patchelf --print-rpath`.
 
-**Fragilidad**: este enfoque te ata al loader glibc instalado y a su compatibilidad con el binario. Cuando el stack glibc de Termux se actualiza (versión de glibc, paths, estructura de librerías), el binario puede dejar de funcionar hasta reaplicar `patchelf`. En ese caso `verify.sh` va a reportar un cambio de hash: es esperable, no necesariamente un ataque. Reinstalá con `bash install.sh -r`.
+**Fragilidad**: este enfoque te ata al loader glibc instalado y a su compatibilidad con el binario. Cuando el stack glibc de Termux se actualiza (versión de glibc, paths, estructura de librerías), el binario puede dejar de funcionar hasta reaplicar `patchelf`. Reinstalá con `bash install.sh -r`.
+
+Qué reporta `verify.sh` en ese caso: **no** un cambio de hash. Actualizar glibc reemplaza librerías, no toca los bytes del binario, así que el hash registrado sigue coincidiendo. Lo que falla es el chequeo del **loader** (desapareció la ruta baked-in) o la **ejecución**. Un hash distinto significa que alguien modificó el binario: no lo descartes como efecto de una actualización.
+
+### Lo que el manifest NO garantiza
+
+`manifest.txt` es un archivo de texto **sin firmar**, en el mismo directorio que el binario. Sirve contra corrupción y contra modificaciones oportunistas o accidentales, pero **no contra un atacante con permiso de escritura ahí**: quien pueda reescribir el binario puede reescribir el manifest y el `attestation=verificada` que contiene. La garantía real de procedencia es la attestation de GitHub verificada con `gh` en el momento de instalar, no el manifest.
 
 ## Actualización
 

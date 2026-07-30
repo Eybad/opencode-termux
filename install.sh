@@ -148,16 +148,18 @@ normalize_version() {
   printf '%s' "$out"
 }
 
+# El sub(/\r$/,"") tolera archivos guardados con finales de linea CRLF, que de
+# otro modo dejarian un \r pegado al hash y darian un error incomprensible.
 lookup_sha256() {
   local tag="$1"
   [[ -f "$HASH_FILE" ]] || return 0
-  awk -v t="$tag" '$1==t { print $2; exit }' "$HASH_FILE"
+  awk -v t="$tag" '{ sub(/\r$/, "") } $1==t { print $2; exit }' "$HASH_FILE"
 }
 
 manifest_get() {
   local key="$1"
   [[ -f "$MANIFEST" ]] || return 0
-  awk -F= -v k="$key" '$1==k { sub(/^[^=]*=/,""); print; exit }' "$MANIFEST"
+  awk -F= -v k="$key" '{ sub(/\r$/, "") } $1==k { sub(/^[^=]*=/,""); print; exit }' "$MANIFEST"
 }
 
 sha_of() { sha256sum "$1" | cut -d' ' -f1; }
@@ -240,25 +242,28 @@ resolve_version() {
 # 170 MB en vano si la version no esta registrada.
 resolve_expected_sha() {
   if [[ -n "$PINNED_SHA" ]]; then
-    EXPECTED_SHA="$PINNED_SHA"
+    # Normalizar a minusculas y sin espacios; la validacion de formato de mas
+    # abajo tambien aplica a este camino.
+    EXPECTED_SHA=$(printf '%s' "$PINNED_SHA" | tr 'A-F' 'a-f' | tr -d '[:space:]')
     warn "Usando SHA256 pasado por --sha256 (verificalo vos mismo)."
-    return 0
-  fi
-  EXPECTED_SHA=$(lookup_sha256 "$TAG")
-  if [[ -z "$EXPECTED_SHA" ]]; then
-    err "No hay SHA256 registrado para $TAG."
-    if [[ ! -f "$HASH_FILE" ]]; then
-      err "Tampoco se encontro $HASH_FILE (¿clonaste el repo completo?)."
+  else
+    EXPECTED_SHA=$(lookup_sha256 "$TAG")
+    if [[ -z "$EXPECTED_SHA" ]]; then
+      err "No hay SHA256 registrado para $TAG."
+      if [[ ! -f "$HASH_FILE" ]]; then
+        err "Tampoco se encontro $HASH_FILE (¿clonaste el repo completo?)."
+      fi
+      err ""
+      err "Fail-closed: no se instala un binario sin verificar. Opciones:"
+      err "  1. Agregá el hash a sha256.txt (instrucciones dentro del archivo)."
+      err "  2. Instalá una version registrada: -v 1.18.9"
+      err "  3. Pineá el hash a mano: --sha256 <sha256-del-tarball>"
+      exit 1
     fi
-    err ""
-    err "Fail-closed: no se instala un binario sin verificar. Opciones:"
-    err "  1. Agregá el hash a sha256.txt (instrucciones dentro del archivo)."
-    err "  2. Instalá una version registrada: -v 1.18.9"
-    err "  3. Pineá el hash a mano: --sha256 <sha256-del-tarball>"
-    exit 1
   fi
   if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-f]{64}$ ]]; then
-    err "El SHA256 esperado para $TAG no es un hash valido: '$EXPECTED_SHA'"
+    err "El SHA256 esperado no es un hash de 64 caracteres hex: '$EXPECTED_SHA'"
+    err "Revisá la entrada de $TAG en sha256.txt o el valor de --sha256."
     exit 1
   fi
 }
@@ -405,7 +410,7 @@ extract_install() {
   mkdir -p "$LIBEXEC_DIR"
   # Copiar todo el contenido del tarball, no solo el binario, para soportar
   # releases futuras que incluyan archivos de soporte.
-  local root="$found"
+  local root
   root=$(dirname "$found")
   cp -a "$root/." "$LIBEXEC_DIR/"
   # Reubicar el binario si venia en un subdirectorio.
