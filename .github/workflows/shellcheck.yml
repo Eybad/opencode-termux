@@ -1,0 +1,42 @@
+name: shellcheck
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Comprobar sintaxis
+        run: |
+          for f in install.sh verify.sh; do
+            bash -n "$f"
+          done
+
+      - name: shellcheck
+        run: shellcheck -s bash install.sh verify.sh
+
+      - name: Validar formato de sha256.txt
+        run: |
+          # Cada linea con contenido debe ser "<vTAG> <sha256 de 64 hex>"
+          bad=0
+          while read -r tag hash rest; do
+            [[ -z "${tag:-}" || "${tag:0:1}" == "#" ]] && continue
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::tag invalido: '$tag'"; bad=1
+            fi
+            if [[ ! "$hash" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error::sha256 invalido para $tag: '$hash'"; bad=1
+            fi
+            if [[ -n "${rest:-}" ]]; then
+              echo "::error::contenido extra en la linea de $tag: '$rest'"; bad=1
+            fi
+          done < sha256.txt
+          exit $bad
