@@ -23,8 +23,8 @@ No es "nativo bionic" — es el binario oficial de Linux ejecutado sobre la capa
 ```bash
 # 1. Bajá el proyecto
 pkg install git -y
-git clone https://github.com/tu-user/termux-opencode.git
-cd termux-opencode
+git clone https://github.com/eybad/opencode-termux.git
+cd opencode-termux
 
 # 2. Ejecutá el instalador
 bash install.sh
